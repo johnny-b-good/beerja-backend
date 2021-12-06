@@ -1,15 +1,25 @@
-import fastify from 'fastify';
+import dotenv from 'dotenv';
+import Fastify from 'fastify';
 
-const server = fastify();
+import { instruments, operations, candles } from './views';
+import { dbConnector } from './plugins';
 
-server.get('/ping', async (request, reply) => {
-    return 'pong\n';
+dotenv.config();
+
+const fastify = Fastify({
+    logger: true,
 });
 
-server.listen(8080, (err, address) => {
+fastify.register(dbConnector);
+fastify.register(instruments);
+fastify.register(operations);
+fastify.register(candles);
+
+fastify.listen(3000, (err, address) => {
     if (err) {
-        console.error(err);
+        fastify.log.error(err);
         process.exit(1);
+    } else {
+        console.log(`Server is now listening on ${address}`);
     }
-    console.log(`Server listening at ${address}`);
 });

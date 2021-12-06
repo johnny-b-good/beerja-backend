@@ -3,11 +3,18 @@
     "version": "0.1.0",
     "scripts": {
         "build": "tsc -p tsconfig.json",
-        "start": "node dist/main.js"
+        "watch": "tsc -p tsconfig.json -w",
+        "start": "node dist/main.js",
+        "importData": "node dist/scripts/importDataFromTinkoff.js"
     },
     "dependencies": {
+        "@tinkoff/invest-openapi-js-sdk": "^1.5.0",
+        "dotenv": "^10.0.0",
         "fastify": "^3.24.1",
-        "sequelize": "^6.12.0-alpha.1",
+        "fastify-error": "^0.3.1",
+        "fastify-mongodb": "^4.1.1",
+        "fastify-plugin": "^3.0.0",
+        "mongodb": "^4.2.1",
         "tslib": "^2.3.1"
     },
     "devDependencies": {
