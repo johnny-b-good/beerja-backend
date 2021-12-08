@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import OpenAPI, {
     Operation as TinkoffOperation,
     MarketInstrument,
@@ -22,6 +22,8 @@ const secretToken = TINKOFF_TOKEN;
 const api = new OpenAPI({ apiURL, secretToken, socketURL });
 
 const STARTING_YEAR = 2012;
+const TARGET_INTERVALS: Array<CandleResolution> = ['day', 'week', 'month'];
+const API_REQUEST_DELAY = 1000;
 
 async function main() {
     // Connect to to MongoDB
@@ -50,7 +52,8 @@ async function main() {
         name: 1,
     });
     const instruments = await getInstruments(operations);
-    await instrumentsCollection.insertMany(instruments);
+    const { insertedIds: instrumentIds } =
+        await instrumentsCollection.insertMany(instruments);
 
     const candlesCollection = db.collection<Candle>('candles');
     await candlesCollection.createIndex({
@@ -60,6 +63,21 @@ async function main() {
     });
     const candles = await getCandles(instruments);
     await candlesCollection.insertMany(candles);
+
+    let instrumentIndex = 0;
+    for (const instrument of instruments) {
+        const { figi } = instrument;
+        const instrumentId: ObjectId = instrumentIds[instrumentIndex];
+        await candlesCollection.updateMany(
+            { figi },
+            { $set: { instrument: instrumentId } }
+        );
+        await operationsCollection.updateMany(
+            { figi },
+            { $set: { instrument: instrumentId } }
+        );
+        instrumentIndex++;
+    }
 
     return 'Done!';
 }
@@ -99,7 +117,7 @@ async function getInstruments(
 
                 console.log('Instrument', instrument.ticker, instrument.name);
 
-                await sleep(1000);
+                await sleep(API_REQUEST_DELAY);
             }
         }
     }
@@ -115,8 +133,6 @@ async function getCandles(
 ): Promise<Array<Candle>> {
     let allCandles: Array<Candle> = [];
 
-    const targetIntervals: Array<CandleResolution> = ['day', 'week', 'month'];
-
     const targetDates: Array<{ from: string; to: string }> = [];
     const currentYear = new Date().getFullYear();
     for (let year = STARTING_YEAR; year < currentYear; year++) {
@@ -128,7 +144,7 @@ async function getCandles(
 
     for (const instrument of instruments) {
         const { figi } = instrument;
-        for (const interval of targetIntervals) {
+        for (const interval of TARGET_INTERVALS) {
             for (const { from, to } of targetDates) {
                 const { candles }: { candles: Array<TinkoffCandle> } =
                     await api.candlesGet({
@@ -143,11 +159,12 @@ async function getCandles(
                         candles.map((c) => ({
                             ...c,
                             time: new Date(Date.parse(c.time)),
+                            instrument: null,
                         }))
                     );
                 }
 
-                await sleep(1000);
+                await sleep(API_REQUEST_DELAY);
             }
         }
         console.log('Candles', instrument.ticker, instrument.name);
