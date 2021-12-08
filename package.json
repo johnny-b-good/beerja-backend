@@ -5,7 +5,8 @@
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -p tsconfig.json -w",
         "start": "node dist/main.js",
-        "importData": "node dist/scripts/importDataFromTinkoff.js"
+        "importData": "node dist/scripts/importDataFromTinkoff.js",
+        "dev": "npx nodemon --watch dist dist/main.js"
     },
     "dependencies": {
         "@tinkoff/invest-openapi-js-sdk": "^1.5.0",
@@ -15,6 +16,7 @@
         "fastify-mongodb": "^4.1.1",
         "fastify-plugin": "^3.0.0",
         "mongodb": "^4.2.1",
+        "nodemon": "^2.0.15",
         "tslib": "^2.3.1"
     },
     "devDependencies": {
